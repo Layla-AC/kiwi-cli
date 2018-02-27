@@ -107,7 +107,7 @@ function init(appname, commands, e) {
 	const Manager = new CLI_MANAGER(appname, commands);
 	Manager.prompt();
 	Manager.cli.on("line", async function(input) {
-		const args = input.split(",");
+		const args = input.split(" ");
 		const cmd = args.shift().trim();
 		const operation = Manager.fetch(cmd);
 		if (!operation) return Manager.noOp(cmd);
