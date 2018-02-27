@@ -39,7 +39,7 @@ class CLI_MANAGER {
 		id = id.trim();
 		if (this.commands[id]) return new Operation(id, this.commands[id]);
 		return null;
-	},
+	}
 	
 	matcher(str,set) {
 		if (set.indexOf(str) > -1) return null;
