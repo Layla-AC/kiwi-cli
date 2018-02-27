@@ -53,9 +53,8 @@ with the truthy value being passed as a parameter to it.
 	
 	// Define our error handler
 	// This is called whenever one of our commands returns a truthy value
-	function catchErr(err, fatal) {
+	function catchErr(err) {
 		console.log(err);
-		if (fatal) process.exit();
 	}
 	
 	// We're ready to start handling input from the user
