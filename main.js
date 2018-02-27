@@ -26,7 +26,7 @@ class CLI_MANAGER {
 			completer: this.completer,
 			terminal: true,
 			historySize: 100,
-			prompt: `[${this.appname}]$`,
+			prompt: `[${this.appname}]$ `,
 			removeHistoryDuplicates: true
 		});
 		this.cli.on("SIGINT",() => {process.exit();});

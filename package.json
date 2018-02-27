@@ -1,7 +1,7 @@
 {
   "name": "kiwi-cli",
   "description": "General-purpose CLI. Designed originally for the Reaching Halcyon server backend.",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "dependencies": {
     "chalk": "^2.3.0"
   },
