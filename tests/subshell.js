@@ -73,4 +73,5 @@ const shell1 = {
 	}
 };
 
+console.log(`Kiwi Simple CLI test. Commands: ${Object.keys(shellData.commands)}`);
 kiwi("", shell1);

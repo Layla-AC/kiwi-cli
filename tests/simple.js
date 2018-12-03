@@ -14,10 +14,6 @@ const shellData = {
 		test2: function(...args) {
 			console.log(`Test Command 2 successful. ${args ? `Args: ${args && args.length && args.length !== 0}` : "No Arguments provided."}`);
 			return false;
-		},
-
-		exit: function() {
-			process.exit();
 		}
 	}
 };

@@ -54,7 +54,7 @@ function parser(input) {
 
 const shellData = {
 	env: [0, 1, 2],
-	envNames: ["CLI Environment", "Echo Console", "> "],
+	envNames: ["CLI Environment", "Echo Console", "Eval"],
 	commands: {
 		setenv: function(mode) {
 			const env = parseInt(mode);
@@ -72,4 +72,5 @@ const shellData = {
 	parser: parser
 };
 
+console.log(`Kiwi Environment mode test.\nModes: 0,1,2\n Commands: ${Object.keys(shellData.commands)}`);
 kiwi("", shellData);

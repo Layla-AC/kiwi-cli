@@ -5,7 +5,7 @@ Node.js CLI that allows for the developer to include any arbitrary list of comma
 New Features:
 * Nestable CLI shells with unique parser and command objects.
 * Multiple Environments per shell allowing for more complex parser functions.
-* Persistent state object in scope of the parser and all commands loaded into a shell.
+* Persistent state object in scope of the parser and all commands loaded into a shell. Must be bound in shell data.
 
 If you used Kiwi-CLI up until now, you will need to modify your implementation for the new overhaul- backwards compatibility has not been maintained due to the extent of the rewrite. 
 
