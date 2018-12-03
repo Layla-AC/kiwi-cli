@@ -1,5 +1,6 @@
 "use strict";
 const chalk = require("chalk");
+const readline = require("readline");
 process.stdin.setEncoding("utf8");
 
 class Operation {
@@ -16,43 +17,60 @@ class Operation {
 	}
 };
 
-class CLI_MANAGER {
-	constructor(appname, commands) {
+class Shell {
+	constructor(appname, master, shellData, stdin, stdout, e) {
 		this.appname = appname;
-		this.commands = commands;
-		this.cli = require("readline").createInterface({
-			input: process.stdin,
-			output: process.stdout,
+		this.master = master;
+		this.stdin = stdin;
+		this.stdout = stdout;
+		this.subshell = null;
+		this.commands = null;
+		this.paused = false;
+		this.exited = false;
+
+		// Initialize Shell
+		this.parser = shellData.parser || defaultParser;
+		this.env = shellData.env || [0];
+		this.curEnv = 0; // Default to the first environment
+		this.envNames = shellData.envNames || [this.appname];
+		this.commands = this.env.indexOf(0) !== -1 && shellData.commands ? shellData.commands : {};
+		this.state = shellData.state || {}; // Parser and Command mutable state
+
+		if (!this.commands.help) Object.assign(this.commands, { help: () => console.log(`Command List: ${Object.keys(this.commands)}`) });
+		if (!this.commands.exit) Object.assign(this.commands, { exit: () => this.exit() });
+
+		this.cli = readline.createInterface({
+			input: stdin,
+			output: stdout,
 			completer: this.completer,
-			terminal: true,
 			historySize: 100,
-			prompt: `[${this.appname}]$ `,
+			prompt: `[${this.envNames[this.curEnv]}]$ `,
 			removeHistoryDuplicates: true
 		});
-		this.cli.on("SIGINT",() => {process.exit();});
-		this.cli.on("SIGCONT",() => {this.prompt()});
+		this.cli.on("SIGINT", () => process.exit());
+		this.cli.on("SIGCONT", () => this.prompt());
+		this.cli.on("line", (input) => this.receive(input));
+
+		this.e = e;
 	}
-	
-	prompt() { this.cli.prompt(); }
-	
-	fetch(id) {
-		id = id.trim();
-		if (this.commands[id]) return new Operation(id, this.commands[id]);
-		return null;
-	}
-	
-	matcher(str,set) {
+
+	matcher(str, set) {
 		if (set.indexOf(str) > -1) return null;
-		function toId(str) { return String(str).toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+
+		function toId(str) {
+			return String(str).toLowerCase().replace(/[^a-z0-9]+/g, "");
+		}
+
 		for (let i = 0; i < set.length; i++) {
 			if (set[i].startsWith(toId(str))) return set[i];
 		}
 		let d = 0;
-		const R = [2,4,6,8];
+		const R = [2, 4, 6, 8];
 		for (d; d < R.length; d++) {
 			if (str.length <= R[d]) break;
 		}
-		function calc(s,t,l) {
+
+		function calc(s, t, l) {
 			let d = [];
 			let n = s.length;
 			let m = t.length;
@@ -78,47 +96,102 @@ class CLI_MANAGER {
 			}
 			return d[n][m];
 		}
+
 		for (const i of set) {
-			if (calc(toId(str),i,d) <= d) return [i];
+			if (calc(toId(str), i, d) <= d) return [i];
 		}
 		return null;
 	}
-	
+
 	completer(input) {
-		const match = this.matcher(input,Object.getOwnPropertyNames(this.commands));
+		const match = this.matcher(input, Object.getOwnPropertyNames(this.commands));
 		if (!match) {
-			return [[],input];
+			return [[], input];
 		} else if (typeof match === "string") {
-			return [[match],input];
+			return [[match], input];
 		} else if (typeof match === "object") {
-			this.cli.write(null,{ctrl:true,name:'u'});
+			this.cli.write(null, {ctrl: true, name: 'u'});
 			this.cli.write(match[0]);
 			return [];
 		}
+	}
+
+	prompt() {
+		if (this.exited)
+			return;
+		else if (this.subshell)
+			this.subshell.prompt();
+		else
+			this.cli.prompt(true);
+	}
+
+	fetch(id) {
+		id = id.trim();
+		if (this.commands[id]) return new Operation(id, this.commands[id]);
+		return null;
 	}
 
 	noOp(cmd) {
 		console.log(chalk.red.bold("--Invalid Command: " + cmd + " - type `help` for a list of commands."));
 		this.prompt();
 	}
+
+	shell(appname, shellData, stdout) {
+		this.cli.pause();
+		this.paused = true;
+		this.subshell = new Shell(appname, this, shellData, this.stdin, stdout || this.stdout);
+		return this.subshell;
+	}
+
+	receive(input) {
+		if (this.paused) return;
+		if (this.subshell)
+			this.subshell.receive(input);
+		else
+			this.parser(input);
+	}
+
+	getTop() {
+		return this.master ? this.master.getTop() : this;
+	}
+
+	getBottom() {
+		return this.subshell ? this.subshell.getBottom() : this;
+	}
+
+	parse(input) {
+		this.parser.call(this, input);
+	}
+
+	exit() {
+		this.cli.close();
+		this.exited = true;
+		if (this.master) {
+			this.master.cli.resume();
+			this.master.paused = false;
+			this.master.subshell = null;
+			this.master.prompt();
+		}
+	}
 };
 
-function init(appname, commands, e) {
-	const Manager = new CLI_MANAGER(appname, commands);
-	Manager.prompt();
-	Manager.cli.on("line", async function(input) {
-		const args = input.split(" ");
-		const cmd = args.shift().trim();
-		const operation = Manager.fetch(cmd);
-		if (!operation) return Manager.noOp(cmd);
-		const err = await operation.run(this, args);
-		if (err) {
-			e(err);
-		} else {
-			Manager.prompt();
-		}
-	}.bind(this));
-	return Manager.prompt;
+async function defaultParser(input) {
+	const args = input.split(" ");
+	const cmd = args.shift().trim();
+	const operation = this.fetch(cmd);
+	if (!operation) return this.noOp(cmd);
+	const err = await operation.run(this, args);
+	if (err) {
+		this.e(err);
+	} else {
+		this.prompt();
+	}
+}
+
+function init(appname, shellData, e = (e) => console.log(e), prompt = true, stdin = process.stdin, stdout = process.stdout) {
+	const shell = new Shell(appname, null, shellData, stdin, stdout, e);
+	if (prompt) shell.prompt();
+	return shell;
 }
 
 module.exports = init;
