@@ -1,24 +1,28 @@
 {
   "name": "kiwi-cli",
-  "description": "General-purpose CLI.",
-  "version": "2.0.1",
+  "description": "General-purpose shell CLI.",
+  "version": "2.0.2",
   "dependencies": {
-    "chalk": "^2.3.0"
+    "chalk": "latest"
   },
   "engines": {
     "node": ">=8.0.0"
   },
   "main": "main.js",
   "scripts": {
-    "start": "node main.js"
+    "start": "node main.js",
+    "simpletest": "node ./tests/simple.js",
+    "envtest": "node ./tests/env.js",
+    "shelltest": "node ./tests/subshell.js",
+    "statetest": "node ./tests/state.js"
   },
   "repository": {
     "type": "git",
     "url": "https://bitbucket.org/cherryblue/kiwi-cli"
   },
   "author": {
-    "name": "Trent Charles",
-    "email": "trentacharles@gmail.com"
+    "name": "Layla A",
+    "email": "layla96c@gmail.com"
   },
   "license": "MIT"
 }
